@@ -21,6 +21,7 @@ class _TaskFormState extends State<TaskForm> {
   DateTime? _date;
   DateTime? _startDate;
   DateTime? _endDate;
+  String _durationUnit = 'minutes'; // ou 'heures'
 
   @override
   void initState() {
@@ -39,10 +40,16 @@ class _TaskFormState extends State<TaskForm> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final isNonPersistent = _selectedType == TaskType.nonPersistent;
+    final raw = int.parse(_durationController.text);
+    final duration =
+        _durationUnit == 'heures'
+            ? Duration(hours: raw)
+            : Duration(minutes: raw);
+
     final task = Task(
       id: widget.existingTask?.id ?? const Uuid().v4(),
       title: _titleController.text,
-      duration: Duration(minutes: int.parse(_durationController.text)),
+      duration: duration,
       type: _selectedType,
       date: isNonPersistent ? _date ?? DateTime.now() : null,
       startDate: _startDate,
@@ -95,9 +102,20 @@ class _TaskFormState extends State<TaskForm> {
                             : null,
               ),
               const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _durationUnit,
+                items: const [
+                  DropdownMenuItem(value: 'minutes', child: Text('Minutes')),
+                  DropdownMenuItem(value: 'heures', child: Text('Heures')),
+                ],
+                onChanged: (value) => setState(() => _durationUnit = value!),
+                decoration: const InputDecoration(labelText: 'Unité de durée'),
+              ),
+              const SizedBox(height: 12),
+
               TextFormField(
                 controller: _durationController,
-                decoration: const InputDecoration(labelText: 'Durée (minutes)'),
+                decoration: const InputDecoration(labelText: 'Durée'),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Durée requise';
