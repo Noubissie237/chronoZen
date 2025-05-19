@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/task.dart';
 import '../screens/timer_screen.dart';
+import '../screens/task_form.dart';
+import '../services/task_provider.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -16,9 +19,41 @@ class TaskCard extends StatelessWidget {
         subtitle: Text(
           'Durée : ${task.duration.inHours}h ${task.duration.inMinutes.remainder(60)}min',
         ),
-        trailing: Icon(
-          task.isDone ? Icons.check_circle : Icons.play_circle,
-          color: task.isDone ? Colors.green : Colors.teal,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) async {
+            if (value == 'edit') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TaskForm(existingTask: task),
+                ),
+              );
+            } else if (value == 'delete') {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Supprimer la tâche'),
+                  content: const Text('Souhaitez-vous vraiment supprimer cette tâche ?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Annuler'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Supprimer'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                Provider.of<TaskProvider>(context, listen: false).deleteTask(task.id);
+              }
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: 'edit', child: Text('Modifier')),
+            const PopupMenuItem(value: 'delete', child: Text('Supprimer')),
+          ],
         ),
         onTap: () {
           if (!task.isDone) {

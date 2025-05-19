@@ -9,27 +9,31 @@ class TaskProvider extends ChangeNotifier {
   List<Task> get tasks => _tasks;
 
   // Récupère uniquement les tâches du jour
-  List<Task> get todayTasks {
-    final now = DateTime.now();
-    return _tasks.where((task) {
-      if (task.type == TaskType.persistent) {
-        return true;
-      }
-      if (task.type == TaskType.semiPersistent) {
-        return task.startDate != null &&
-            task.endDate != null &&
-            now.isAfter(task.startDate!.subtract(const Duration(days: 1))) &&
-            now.isBefore(task.endDate!.add(const Duration(days: 1)));
-      }
-      if (task.type == TaskType.nonPersistent) {
-        return task.date != null &&
-            task.date!.year == now.year &&
-            task.date!.month == now.month &&
-            task.date!.day == now.day;
-      }
-      return false;
-    }).toList();
-  }
+List<Task> get todayTasks {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  return _tasks.where((task) {
+    if (task.type == TaskType.persistent) return true;
+
+    if (task.type == TaskType.semiPersistent) {
+      final start = task.startDate != null
+          ? DateTime(task.startDate!.year, task.startDate!.month, task.startDate!.day)
+          : null;
+      final end = task.endDate != null
+          ? DateTime(task.endDate!.year, task.endDate!.month, task.endDate!.day)
+          : null;
+      return start != null && end != null && !today.isBefore(start) && !today.isAfter(end);
+    }
+
+    if (task.type == TaskType.nonPersistent && task.date != null) {
+      final taskDate = DateTime(task.date!.year, task.date!.month, task.date!.day);
+      return taskDate == today;
+    }
+
+    return false;
+  }).toList();
+}
 
   Future<void> loadTasks() async {
     _tasks.clear();
@@ -62,7 +66,8 @@ class TaskProvider extends ChangeNotifier {
     final today = DateTime.now();
     for (var i = 0; i < _tasks.length; i++) {
       final task = _tasks[i];
-      if (task.type != TaskType.nonPersistent || task.date?.isAtSameMomentAs(today) == true) {
+      if (task.type != TaskType.nonPersistent ||
+          task.date?.isAtSameMomentAs(today) == true) {
         final updated = Task(
           id: task.id,
           title: task.title,
@@ -85,29 +90,33 @@ class TaskProvider extends ChangeNotifier {
     final Map<DateTime, List<Task>> result = {};
 
     for (int i = 0; i < days; i++) {
-      final day = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final day = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: i));
 
-      final tasksOfDay = _tasks.where((task) {
-        if (task.type == TaskType.persistent) return true;
-        if (task.type == TaskType.semiPersistent) {
-          return task.startDate != null &&
-                task.endDate != null &&
-                !day.isBefore(task.startDate!) &&
-                !day.isAfter(task.endDate!);
-        }
-        if (task.type == TaskType.nonPersistent) {
-          return task.date != null &&
-              task.date!.year == day.year &&
-              task.date!.month == day.month &&
-              task.date!.day == day.day;
-        }
-        return false;
-      }).toList();
+      final tasksOfDay =
+          _tasks.where((task) {
+            if (task.type == TaskType.persistent) return true;
+            if (task.type == TaskType.semiPersistent) {
+              return task.startDate != null &&
+                  task.endDate != null &&
+                  !day.isBefore(task.startDate!) &&
+                  !day.isAfter(task.endDate!);
+            }
+            if (task.type == TaskType.nonPersistent) {
+              return task.date != null &&
+                  task.date!.year == day.year &&
+                  task.date!.month == day.month &&
+                  task.date!.day == day.day;
+            }
+            return false;
+          }).toList();
 
       result[day] = tasksOfDay;
     }
 
     return result;
   }
-
 }
