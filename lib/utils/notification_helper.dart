@@ -2,25 +2,30 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../main.dart';
 
 Future<void> showDoneNotification(String title) async {
-  const androidDetails = AndroidNotificationDetails(
-    'task_channel',
-    'Tâches',
-    channelDescription: 'Notification de fin de tâche',
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'task_channel', // ID du canal
+    'Notifications des tâches',
+    channelDescription: 'Canal pour les alertes de fin de tâche',
     importance: Importance.max,
     priority: Priority.high,
     playSound: true,
-    ticker: 'ticker',
+    enableVibration: true,
+    sound: RawResourceAndroidNotificationSound('alert'), // fichier mp3 dans /res
   );
 
-  const iosDetails = DarwinNotificationDetails();
+  const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    presentSound: true,
+  );
 
-  const notificationDetails =
-      NotificationDetails(android: androidDetails, iOS: iosDetails);
+  const NotificationDetails platformDetails = NotificationDetails(
+    android: androidDetails,
+    iOS: iosDetails,
+  );
 
   await flutterLocalNotificationsPlugin.show(
     0,
-    'Tâche terminée',
+    '⏱️ Tâche terminée',
     title,
-    notificationDetails,
+    platformDetails,
   );
 }
