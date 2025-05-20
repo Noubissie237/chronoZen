@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'services/task_provider.dart';
 import 'services/task_database.dart';
@@ -14,15 +16,18 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  tz.initializeTimeZones();
+  tz.setLocalLocation(tz.getLocation('Africa/Douala'));
+
   await AndroidAlarmManager.initialize();
   await initNotifications();
 
   runApp(const ChronoZenApp());
 
-  // Réinitialisation automatique chaque jour à minuit
   await AndroidAlarmManager.periodic(
     const Duration(hours: 24),
-    0, // ID unique
+    0,
     resetDailyTasks,
     startAt: DateTime.now().add(
       Duration(
@@ -35,6 +40,7 @@ void main() async {
     wakeup: true,
   );
 }
+
 
 class ChronoZenApp extends StatelessWidget {
   const ChronoZenApp({super.key});

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:chrono_zen/main.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/task.dart';
@@ -9,11 +10,7 @@ class TaskCard extends StatefulWidget {
   final Task task;
   final VoidCallback? onEdit;
 
-  const TaskCard({
-    super.key,
-    required this.task,
-    this.onEdit,
-  });
+  const TaskCard({super.key, required this.task, this.onEdit});
 
   @override
   State<TaskCard> createState() => _TaskCardState();
@@ -35,13 +32,9 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    _progressAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeInOut,
-    ));
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -56,6 +49,13 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
       _totalSeconds = widget.task.duration.inSeconds;
       _remainingSeconds = _totalSeconds;
       _progressController.forward();
+
+      // ✅ Planifie la notification une seule fois (au lancement initial)
+      scheduleTaskNotification(
+        taskId: widget.task.id,
+        title: widget.task.title,
+        delay: widget.task.duration,
+      );
     }
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
@@ -76,6 +76,7 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
   void _pauseTimer() {
     _timer?.cancel();
     setState(() => _isPaused = true);
+    flutterLocalNotificationsPlugin.cancel(widget.task.id.hashCode);
   }
 
   void _stopTimer() {
@@ -85,6 +86,7 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
       _isRunning = false;
       _isPaused = false;
     });
+    flutterLocalNotificationsPlugin.cancel(widget.task.id.hashCode);
   }
 
   Future<void> _completeTask() async {
@@ -102,7 +104,7 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
       endDate: widget.task.endDate,
       isDone: true,
     );
-    
+
     await provider.updateTask(updatedTask);
     await showDoneNotification(widget.task.title);
   }
@@ -110,33 +112,38 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
   Future<void> _showDeleteConfirmation() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Supprimer la tâche'),
-        content: Text(
-          'Voulez-vous vraiment supprimer "${widget.task.title}" ?',
-          style: const TextStyle(fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Text('Supprimer'),
+            title: const Text('Supprimer la tâche'),
+            content: Text(
+              'Voulez-vous vraiment supprimer "${widget.task.title}" ?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Supprimer'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed == true && mounted) {
-      Provider.of<TaskProvider>(context, listen: false)
-          .deleteTask(widget.task.id);
+      Provider.of<TaskProvider>(
+        context,
+        listen: false,
+      ).deleteTask(widget.task.id);
     }
   }
 
@@ -184,11 +191,7 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
             color: _getTaskTypeColor().withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            _getTaskTypeIcon(),
-            color: _getTaskTypeColor(),
-            size: 20,
-          ),
+          child: Icon(_getTaskTypeIcon(), color: _getTaskTypeColor(), size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -206,18 +209,13 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
               const SizedBox(height: 4),
               Text(
                 'Durée : ${_formatDuration(widget.task.duration)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
           ),
         ),
-        if (!widget.task.isDone && !_isRunning)
-          _buildActionButton(),
-        if (widget.task.isDone || _isRunning)
-          _buildMenuButton(),
+        if (!widget.task.isDone && !_isRunning) _buildActionButton(),
+        if (widget.task.isDone || _isRunning) _buildMenuButton(),
       ],
     );
   }
@@ -248,24 +246,25 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
             break;
         }
       },
-      itemBuilder: (context) => [
-        // const PopupMenuItem(
-        //   value: 'edit',
-        //   child: ListTile(
-        //     leading: Icon(Icons.edit),
-        //     title: Text('Modifier'),
-        //     contentPadding: EdgeInsets.zero,
-        //   ),
-        // ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-            leading: Icon(Icons.delete, color: Colors.red),
-            title: Text('Supprimer', style: TextStyle(color: Colors.red)),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
+      itemBuilder:
+          (context) => [
+            // const PopupMenuItem(
+            //   value: 'edit',
+            //   child: ListTile(
+            //     leading: Icon(Icons.edit),
+            //     title: Text('Modifier'),
+            //     contentPadding: EdgeInsets.zero,
+            //   ),
+            // ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Supprimer', style: TextStyle(color: Colors.red)),
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
@@ -309,10 +308,7 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
                       ),
                       Text(
                         'restant',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -323,11 +319,17 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: _isPaused ? () => _startTimer(resume: true) : _pauseTimer,
+                    onPressed:
+                        _isPaused
+                            ? () => _startTimer(resume: true)
+                            : _pauseTimer,
                     icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
                     label: Text(_isPaused ? 'Reprendre' : 'Pause'),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -340,7 +342,10 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
