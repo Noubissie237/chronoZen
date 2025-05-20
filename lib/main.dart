@@ -1,3 +1,4 @@
+import 'package:chrono_zen/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -8,7 +9,6 @@ import 'package:timezone/timezone.dart' as tz;
 import 'services/task_provider.dart';
 import 'services/task_database.dart';
 import 'models/task.dart';
-import 'screens/home_screen.dart';
 
 // Instance globale pour les notifications
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -56,7 +56,7 @@ class ChronoZenApp extends StatelessWidget {
           primarySwatch: Colors.teal,
           scaffoldBackgroundColor: Colors.grey[50],
         ),
-        home: const HomeScreen(),
+        home: const MainScreen(),
       ),
     );
   }

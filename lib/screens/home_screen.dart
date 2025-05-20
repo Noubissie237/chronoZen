@@ -1,5 +1,3 @@
-import 'package:chrono_zen/screens/settings_screen.dart';
-import 'package:chrono_zen/screens/statistics_screen.dart';
 import 'package:chrono_zen/screens/task_form.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -116,38 +114,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         centerTitle: true,
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.bar_chart_rounded, color: theme.primaryColor),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const StatisticsScreen()),
-                );
-              },
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () async {
-              final result = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-
-              if (result == true) {
-                // 🔄 Recharge le temps disponible
-                setState(() {
-                  _availableTime = getAvailableTimeForToday();
-                });
-              }
-            },
-          ),
-        ],
       ),
 
       body: FadeTransition(
