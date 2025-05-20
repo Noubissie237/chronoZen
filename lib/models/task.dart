@@ -52,4 +52,27 @@ class Task {
       isDone: map['isDone'] == 1,
     );
   }
+
+  Task copyWith({
+    String? id,
+    String? title,
+    Duration? duration,
+    TaskType? type,
+    DateTime? date,
+    DateTime? startDate,
+    DateTime? endDate,
+    bool? isDone,
+  }) {
+    return Task(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      duration: duration ?? this.duration,
+      type: type ?? this.type,
+      date: date ?? this.date,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isDone: isDone ?? this.isDone,
+    );
+  }
+
 }

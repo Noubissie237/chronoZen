@@ -1,3 +1,4 @@
+import 'package:chrono_zen/models/task.dart';
 import 'package:chrono_zen/screens/task_form.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -76,17 +77,23 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final taskProvider = Provider.of<TaskProvider>(context);
-    final tasks = taskProvider.todayTasks;
-    final completedTasks = tasks.where((task) => task.isDone).length;
-    final totalTasks = tasks.length;
+    final rawTasks = taskProvider.todayTasks;
+
+    final tasks = List<Task>.from(rawTasks)..sort((a, b) {
+      if (a.isDone == b.isDone) return 0;
+      return a.isDone ? 1 : -1; // Les tâches non faites en haut
+    });
+
+    final completedTasks = rawTasks.where((task) => task.isDone).length;
+    final totalTasks = rawTasks.length;
 
     // Durée totale des tâches
-    final totalDuration = tasks.fold<Duration>(
+    final totalDuration = rawTasks.fold<Duration>(
       Duration.zero,
       (sum, task) => sum + task.duration,
     );
 
-    final completedDuration = tasks
+    final completedDuration = rawTasks
         .where((task) => task.isDone)
         .fold<Duration>(Duration.zero, (sum, task) => sum + task.duration);
 
