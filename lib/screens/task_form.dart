@@ -16,13 +16,13 @@ class TaskForm extends StatefulWidget {
 class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _durationController = TextEditingController();
-  
+  final _hoursController = TextEditingController();
+  final _minutesController = TextEditingController();
+
   TaskType _selectedType = TaskType.nonPersistent;
   DateTime? _date;
   DateTime? _startDate;
   DateTime? _endDate;
-  String _durationUnit = 'minutes';
   bool _isLoading = false;
 
   late AnimationController _animationController;
@@ -36,22 +36,17 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
 
     _initializeFormData();
     _animationController.forward();
@@ -60,7 +55,9 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
   @override
   void dispose() {
     _titleController.dispose();
-    _durationController.dispose();
+    _hoursController.dispose();
+    _minutesController.dispose();
+
     _animationController.dispose();
     super.dispose();
   }
@@ -69,37 +66,47 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
     if (widget.existingTask != null) {
       final task = widget.existingTask!;
       _titleController.text = task.title;
-      _durationController.text = task.duration.inMinutes.toString();
+      _hoursController.text = task.duration.inHours.toString();
+      _minutesController.text = (task.duration.inMinutes % 60).toString();
       _selectedType = task.type;
       _date = task.date;
       _startDate = task.startDate;
       _endDate = task.endDate;
-      
-      // Détermine l'unité appropriée
-      if (task.duration.inMinutes % 60 == 0 && task.duration.inHours > 0) {
-        _durationUnit = 'heures';
-        _durationController.text = task.duration.inHours.toString();
-      }
     }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
+    final hours = int.tryParse(_hoursController.text.trim()) ?? 0;
+    final minutes = int.tryParse(_minutesController.text.trim()) ?? 0;
+
+    // Vérifie que la durée est d'au moins 1 minute
+    if (hours == 0 && minutes == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez définir une durée d\'au moins 1 minute.'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      final raw = int.parse(_durationController.text);
-      final duration = _durationUnit == 'heures'
-          ? Duration(hours: raw)
-          : Duration(minutes: raw);
+      final duration = Duration(hours: hours, minutes: minutes);
 
       final task = Task(
         id: widget.existingTask?.id ?? const Uuid().v4(),
         title: _titleController.text.trim(),
         duration: duration,
         type: _selectedType,
-        date: _selectedType == TaskType.nonPersistent ? (_date ?? DateTime.now()) : null,
+        date:
+            _selectedType == TaskType.nonPersistent
+                ? (_date ?? DateTime.now())
+                : null,
         startDate: _selectedType == TaskType.semiPersistent ? _startDate : null,
         endDate: _selectedType == TaskType.semiPersistent ? _endDate : null,
         isDone: widget.existingTask?.isDone ?? false,
@@ -118,13 +125,15 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              widget.existingTask == null 
-                ? 'Tâche créée avec succès'
-                : 'Tâche mise à jour avec succès',
+              widget.existingTask == null
+                  ? 'Tâche créée avec succès'
+                  : 'Tâche mise à jour avec succès',
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
@@ -135,7 +144,9 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
             content: Text('Erreur: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
         );
       }
@@ -146,7 +157,10 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _pickDate(BuildContext context, Function(DateTime) onSelected) async {
+  Future<void> _pickDate(
+    BuildContext context,
+    Function(DateTime) onSelected,
+  ) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
@@ -156,9 +170,9 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: Theme.of(context).primaryColor,
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: Theme.of(context).primaryColor),
           ),
           child: child!,
         );
@@ -214,10 +228,7 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -232,58 +243,75 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
-        children: TaskType.values.map((type) {
-          final isSelected = _selectedType == type;
-          return InkWell(
-            onTap: () => setState(() => _selectedType = type),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isSelected ? _getTaskTypeColor(type).withOpacity(0.1) : null,
+        children:
+            TaskType.values.map((type) {
+              final isSelected = _selectedType == type;
+              return InkWell(
+                onTap: () => setState(() => _selectedType = type),
                 borderRadius: BorderRadius.circular(12),
-                border: isSelected 
-                  ? Border.all(color: _getTaskTypeColor(type), width: 2)
-                  : null,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _getTaskTypeIcon(type),
-                    color: isSelected ? _getTaskTypeColor(type) : Colors.grey[600],
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color:
+                        isSelected
+                            ? _getTaskTypeColor(type).withOpacity(0.1)
+                            : null,
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        isSelected
+                            ? Border.all(
+                              color: _getTaskTypeColor(type),
+                              width: 2,
+                            )
+                            : null,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _getTaskTypeLabel(type),
-                          style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            color: isSelected ? _getTaskTypeColor(type) : Colors.black87,
-                          ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getTaskTypeIcon(type),
+                        color:
+                            isSelected
+                                ? _getTaskTypeColor(type)
+                                : Colors.grey[600],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getTaskTypeLabel(type),
+                              style: TextStyle(
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                color:
+                                    isSelected
+                                        ? _getTaskTypeColor(type)
+                                        : Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              _getTaskTypeDescription(type),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          _getTaskTypeDescription(type),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
+                      ),
+                      if (isSelected)
+                        Icon(
+                          Icons.check_circle,
+                          color: _getTaskTypeColor(type),
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                  if (isSelected)
-                    Icon(
-                      Icons.check_circle,
-                      color: _getTaskTypeColor(type),
-                    ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
+                ),
+              );
+            }).toList(),
       ),
     );
   }
@@ -334,20 +362,20 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      date != null ? _formatDate(date) : 'Sélectionner une date',
+                      date != null
+                          ? _formatDate(date)
+                          : 'Sélectionner une date',
                       style: TextStyle(
                         fontSize: 16,
                         color: date != null ? Colors.black87 : Colors.grey[500],
-                        fontWeight: date != null ? FontWeight.w500 : FontWeight.normal,
+                        fontWeight:
+                            date != null ? FontWeight.w500 : FontWeight.normal,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.keyboard_arrow_right,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.keyboard_arrow_right, color: Colors.grey[400]),
             ],
           ),
         ),
@@ -381,7 +409,10 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+            borderSide: BorderSide(
+              color: Theme.of(context).primaryColor,
+              width: 2,
+            ),
           ),
           filled: true,
           fillColor: Colors.grey[50],
@@ -395,7 +426,7 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.existingTask != null;
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -437,33 +468,35 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildSectionTitle('Informations générales', Icons.info_outline),
+                        _buildSectionTitle(
+                          'Informations générales',
+                          Icons.info_outline,
+                        ),
                         _buildCustomFormField(
                           controller: _titleController,
                           label: 'Titre de la tâche',
                           icon: Icons.title,
-                          validator: (value) =>
-                              value == null || value.trim().isEmpty
-                                  ? 'Veuillez entrer un titre'
-                                  : null,
+                          validator:
+                              (value) =>
+                                  value == null || value.trim().isEmpty
+                                      ? 'Veuillez entrer un titre'
+                                      : null,
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
-                              flex: 2,
-                              child: _buildCustomFormField(
-                                controller: _durationController,
-                                label: 'Durée',
-                                icon: Icons.timer,
+                              child: TextFormField(
+                                controller: _hoursController,
                                 keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Heures',
+                                ),
                                 validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Durée requise';
-                                  }
-                                  final parsed = int.tryParse(value);
-                                  if (parsed == null || parsed <= 0) {
-                                    return 'Nombre valide requis';
+                                  if (value != null &&
+                                      value.isNotEmpty &&
+                                      int.tryParse(value) == null) {
+                                    return 'Entrez un nombre valide';
                                   }
                                   return null;
                                 },
@@ -471,28 +504,19 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
                             ),
                             const SizedBox(width: 16),
                             Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: _durationUnit,
-                                decoration: InputDecoration(
-                                  labelText: 'Unité',
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[50],
+                              child: TextFormField(
+                                controller: _minutesController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  labelText: 'Minutes',
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'minutes',
-                                    child: Text('Minutes'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'heures',
-                                    child: Text('Heures'),
-                                  ),
-                                ],
-                                onChanged: (value) {
-                                  setState(() => _durationUnit = value!);
+                                validator: (value) {
+                                  if (value != null &&
+                                      value.isNotEmpty &&
+                                      int.tryParse(value) == null) {
+                                    return 'Entrez un nombre valide';
+                                  }
+                                  return null;
                                 },
                               ),
                             ),
@@ -549,7 +573,10 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionTitle('Planification', Icons.calendar_month),
+                          _buildSectionTitle(
+                            'Planification',
+                            Icons.calendar_month,
+                          ),
                           if (_selectedType == TaskType.nonPersistent)
                             _buildDateSelector(
                               label: 'Date d\'exécution',
@@ -590,29 +617,34 @@ class _TaskFormState extends State<TaskForm> with TickerProviderStateMixin {
                         ),
                         elevation: 2,
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(isEditing ? Icons.save : Icons.add),
-                                const SizedBox(width: 8),
-                                Text(
-                                  isEditing ? 'Mettre à jour' : 'Créer la tâche',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
+                      child:
+                          _isLoading
+                              ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
                                   ),
                                 ),
-                              ],
-                            ),
+                              )
+                              : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(isEditing ? Icons.save : Icons.add),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    isEditing
+                                        ? 'Mettre à jour'
+                                        : 'Créer la tâche',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
                     ),
                   ),
 
