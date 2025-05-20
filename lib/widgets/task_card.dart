@@ -249,14 +249,14 @@ class _TaskCardState extends State<TaskCard> with TickerProviderStateMixin {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'edit',
-          child: ListTile(
-            leading: Icon(Icons.edit),
-            title: Text('Modifier'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
+        // const PopupMenuItem(
+        //   value: 'edit',
+        //   child: ListTile(
+        //     leading: Icon(Icons.edit),
+        //     title: Text('Modifier'),
+        //     contentPadding: EdgeInsets.zero,
+        //   ),
+        // ),
         const PopupMenuItem(
           value: 'delete',
           child: ListTile(

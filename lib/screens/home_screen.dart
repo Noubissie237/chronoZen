@@ -25,23 +25,18 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
-    
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    ));
-    
+    ).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
+    );
+
     _animationController.forward();
   }
 
@@ -103,7 +98,11 @@ class _HomeScreenState extends State<HomeScreen>
       backgroundColor: isDark ? null : Colors.grey[50],
       appBar: AppBar(
         elevation: 1,
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromARGB(0, 64, 195, 255),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12),
+          child: Image.asset('assets/images/logo.png', width: 32, height: 32),
+        ),
         title: Text(
           'ChronoZen',
           style: TextStyle(
@@ -121,10 +120,7 @@ class _HomeScreenState extends State<HomeScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
-              icon: Icon(
-                Icons.bar_chart_rounded,
-                color: theme.primaryColor,
-              ),
+              icon: Icon(Icons.bar_chart_rounded, color: theme.primaryColor),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const StatisticsScreen()),
@@ -134,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
+
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: SlideTransition(
@@ -155,28 +152,30 @@ class _HomeScreenState extends State<HomeScreen>
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: isDark
-                            ? [
-                                theme.primaryColor.withOpacity(0.2),
-                                theme.primaryColor.withOpacity(0.1)
-                              ]
-                            : [
-                                theme.primaryColor.withOpacity(0.1),
-                                theme.primaryColor.withOpacity(0.05)
-                              ],
+                        colors:
+                            isDark
+                                ? [
+                                  theme.primaryColor.withOpacity(0.2),
+                                  theme.primaryColor.withOpacity(0.1),
+                                ]
+                                : [
+                                  theme.primaryColor.withOpacity(0.1),
+                                  theme.primaryColor.withOpacity(0.05),
+                                ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: isDark
-                          ? null
-                          : [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
+                      boxShadow:
+                          isDark
+                              ? null
+                              : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,16 +201,18 @@ class _HomeScreenState extends State<HomeScreen>
                                 children: [
                                   Text(
                                     '${_getGreeting()} !',
-                                    style: theme.textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.onSurface,
-                                    ),
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     _getMotivationalQuote(),
                                     style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.7),
                                     ),
                                   ),
                                 ],
@@ -246,7 +247,10 @@ class _HomeScreenState extends State<HomeScreen>
                           subtitle: 'complétées',
                           icon: Icons.check_circle_rounded,
                           color: Colors.green,
-                          progress: totalTasks > 0 ? completedTasks / totalTasks : 0.0,
+                          progress:
+                              totalTasks > 0
+                                  ? completedTasks / totalTasks
+                                  : 0.0,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -275,9 +279,11 @@ class _HomeScreenState extends State<HomeScreen>
                           subtitle: 'terminé',
                           icon: Icons.timer_rounded,
                           color: Colors.orange,
-                          progress: totalDuration.inSeconds > 0 
-                              ? completedDuration.inSeconds / totalDuration.inSeconds 
-                              : 0.0,
+                          progress:
+                              totalDuration.inSeconds > 0
+                                  ? completedDuration.inSeconds /
+                                      totalDuration.inSeconds
+                                  : 0.0,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -338,7 +344,8 @@ class _HomeScreenState extends State<HomeScreen>
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: tasks.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 8),
+                      separatorBuilder:
+                          (context, index) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final task = tasks[index];
                         return AnimatedContainer(
@@ -359,9 +366,9 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const TaskForm()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const TaskForm()));
         },
         icon: const Icon(Icons.add_rounded),
         label: const Text('Nouvelle tâche'),
@@ -389,21 +396,23 @@ class _HomeScreenState extends State<HomeScreen>
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-        border: isDark
-            ? Border.all(
-                color: theme.dividerColor.withOpacity(0.1),
-                width: 1,
-              )
-            : null,
+        boxShadow:
+            isDark
+                ? null
+                : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        border:
+            isDark
+                ? Border.all(
+                  color: theme.dividerColor.withOpacity(0.1),
+                  width: 1,
+                )
+                : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,11 +425,7 @@ class _HomeScreenState extends State<HomeScreen>
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
+                child: Icon(icon, color: color, size: 20),
               ),
               const Spacer(),
               if (progress != null)
@@ -501,9 +506,9 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TaskForm()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const TaskForm()));
             },
             icon: const Icon(Icons.add_rounded),
             label: const Text('Ajouter une tâche'),
