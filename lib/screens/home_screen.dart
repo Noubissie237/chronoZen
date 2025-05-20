@@ -1,9 +1,11 @@
+import 'package:chrono_zen/screens/settings_screen.dart';
 import 'package:chrono_zen/screens/statistics_screen.dart';
 import 'package:chrono_zen/screens/task_form.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/task_provider.dart';
 import '../widgets/task_card.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +19,8 @@ class _HomeScreenState extends State<HomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  // ignore: unused_field
+  late Future<Duration> _availableTime;
 
   @override
   void initState() {
@@ -25,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
+    _availableTime = getAvailableTimeForToday();
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
@@ -88,8 +93,7 @@ class _HomeScreenState extends State<HomeScreen>
         .fold<Duration>(Duration.zero, (sum, task) => sum + task.duration);
 
     // Plage active par défaut : 5h à 23h → 18h disponibles
-    final totalAvailable = const Duration(hours: 18);
-    final freeTime = totalAvailable - totalDuration;
+    // final freeTime = totalAvailable - totalDuration;
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -127,6 +131,21 @@ class _HomeScreenState extends State<HomeScreen>
                 );
               },
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () async {
+              final result = await Navigator.of(context).push<bool>(
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+
+              if (result == true) {
+                // 🔄 Recharge le temps disponible
+                setState(() {
+                  _availableTime = getAvailableTimeForToday();
+                });
+              }
+            },
           ),
         ],
       ),
@@ -288,13 +307,32 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _buildStatsCard(
-                          context,
-                          title: 'Temps libre',
-                          value: formatDuration(freeTime),
-                          subtitle: 'disponible',
-                          icon: Icons.free_breakfast_rounded,
-                          color: Colors.purple,
+                        child: FutureBuilder<Duration>(
+                          future: getAvailableTimeForToday(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return _buildStatsCard(
+                                context,
+                                title: 'Temps libre',
+                                value: '--',
+                                subtitle: 'chargement...',
+                                icon: Icons.free_breakfast_rounded,
+                                color: Colors.purple,
+                              );
+                            }
+
+                            final totalAvailable = snapshot.data!;
+                            final freeTime = totalAvailable - totalDuration;
+
+                            return _buildStatsCard(
+                              context,
+                              title: 'Temps libre',
+                              value: formatDuration(freeTime),
+                              subtitle: 'disponible',
+                              icon: Icons.free_breakfast_rounded,
+                              color: Colors.purple,
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -525,4 +563,29 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+}
+
+Future<Duration> getAvailableTimeForToday() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  final sleepStart = TimeOfDay(
+    hour: prefs.getInt('sleep_start_hour') ?? 23,
+    minute: prefs.getInt('sleep_start_minute') ?? 0,
+  );
+  final sleepEnd = TimeOfDay(
+    hour: prefs.getInt('sleep_end_hour') ?? 5,
+    minute: prefs.getInt('sleep_end_minute') ?? 0,
+  );
+
+  final start = DateTime(0, 1, 1, sleepStart.hour, sleepStart.minute);
+  final end = DateTime(
+    0,
+    1,
+    sleepEnd.hour < sleepStart.hour ? 2 : 1,
+    sleepEnd.hour,
+    sleepEnd.minute,
+  );
+
+  final sleepDuration = end.difference(start);
+  return const Duration(hours: 24) - sleepDuration;
 }
